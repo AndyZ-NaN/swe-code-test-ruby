@@ -2,36 +2,40 @@
 
 require 'selenium-webdriver'
 
-# if ARGV.length != 2
-#     puts "Downloads files available presented on"\
-#         " https://codetest2.services.mdxdata.com"\
-#         " into the current directory."
-#     puts "Usage: ruby <script.rb> <url> <download path>"
-#     exit
-# end
-
-url = "https://codetest2.services.mdxdata.com"
-if ARGV[0] and Dir.exists?(ARGV[0])
-    download_path = ARGV[0]
-else
-    download_path = "."
+if ARGV.length < 1
+    puts "Missing argument: <dest-dir>: " \
+    "Destination directory for downloaded files."
+    puts "Usage: ruby codetest2.rb <dest-dir>"
+    exit
 end
 
+url = "https://codetest2.services.mdxdata.com"
 
+options = Selenium::WebDriver::Chrome::Options.new(args: ['headless'])
+
+download_path = ARGV[0]
 download_prefs = {
     prompt_for_download: false,
     default_directory: download_path
 }
-
-options = Selenium::WebDriver::Chrome::Options.new()
 options.add_preference(:download, download_prefs)
+
 driver = Selenium::WebDriver.for(:chrome, options: options)
+driver.manage.timeouts.implicit_wait = 1.0 / 24.0
 driver.get(url)
 
-driver.manage.timeouts.implicit_wait = 1
-
-driver.find_elements(:tag_name, "a").each do |element|
-    element.click
+begin
+    driver.find_elements(:tag_name, "a").each do |element|
+        element.click
+    end
+rescue
+    # In case the try/catch fails due to the links 404-ing, refresh the page
+    driver.get(url)
+    driver.find_elements(:tag_name, "a").each do |element|
+        element.click
+    end
 end
+
+sleep(1) # Wait one second for downloads to finish before quitting
 
 driver.quit
